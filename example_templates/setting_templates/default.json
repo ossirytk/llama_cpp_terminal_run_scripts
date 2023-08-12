@@ -1,0 +1,8 @@
+{
+    "temperature":0.6,
+    "repeat_penalty":1.17647,
+    "repeat_last":256,
+    "batch_size":1024,
+    "rope_scale":2,
+    "mirostat":2
+}

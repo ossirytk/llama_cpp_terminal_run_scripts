@@ -1,0 +1,8 @@
+{
+    "model_name":"30b-Lazarus.ggmlv3.q5_K_M.bin",
+    "layers":8,
+    "threads":6,
+    "context_size":4096,
+    "n_predict":4096,
+    "model_type": "alpaca"
+}

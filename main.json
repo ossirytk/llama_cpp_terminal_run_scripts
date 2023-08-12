@@ -1,0 +1,10 @@
+{
+    "llama_cpp_path":"..\\llama.cpp\\build\\bin\\Release\\",
+    "model_path":"..\\llm_files\\models\\",
+    "model_config_path":"..\\llm_files\\model_config\\",
+    "settings_path":"..\\llm_files\\settings_config\\",
+    "prompt_path":"..\\llm_files\\prompts\\",
+    "cache_path":"..\\llm_files\\cache\\",
+    "name":"You",
+    "prompt_core":"Continue the chat dialogue below. Write {{char}}'s next reply in a chat between {{user}} and {{char}}. Write a single reply only. After your reply write a new line and \"{{user}}:\""
+}
