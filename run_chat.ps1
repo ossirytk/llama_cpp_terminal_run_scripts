@@ -15,24 +15,34 @@ If (-Not (Test-Path $EXE_BIN))
 #Check if we have the params fro last run
 $last_run = $MAIN_CFG.cache_path + "last.json"
 if(Test-Path $last_run) {
-  $params = Get-Content $last_run | ConvertFrom-Json
-  $last_model = Split-Path $params[5] -Leaf
-  $last_prompt = Split-Path $params[7] -Leaf
-  $question = $last_model + "`r`nPrompt: " + $last_prompt +"`r`n"
-  $rerun_choice = $Host.UI.PromptForChoice("Rerun last chat?", $question, @("&Yes","&No"), 0)
-  if($rerun_choice -eq 0){
-    & $EXE_BIN @params
+  try {
+    $params = Get-Content $last_run | ConvertFrom-Json
+    $last_model = Split-Path $params[5] -Leaf
+    $last_prompt = Split-Path $params[7] -Leaf
+    $question = $last_model + "`r`nPrompt: " + $last_prompt +"`r`n"
+    $rerun_choice = $Host.UI.PromptForChoice("Rerun last chat?", $question, @("&Yes","&No"), 0)
+    if($rerun_choice -eq 0){
+      & $EXE_BIN @params
+    }
+  }
+  catch {
+    Write-Host "Could not load cache"
   }
 }
 
 
 #Build a list of model files
-$path = $MAIN_CFG.model_path + "*.bin"
-$files = Get-ChildItem $path | ForEach-Object {
+$path = $MAIN_CFG.model_path + "*.gguf"
+try {
+  $files = Get-ChildItem $path | ForEach-Object {
     if ( -not $_.psiscontainer) {
         $temp = $_.fullname -replace [regex]::escape($path), (split-path $path -leaf)
         "$temp"
     }
+}
+}
+catch {
+  Throw "Error loading model list"
 }
 $choices = [System.Collections.ArrayList]@()
 $i = 0
@@ -60,14 +70,23 @@ if ($files.GetType().FullName -eq "System.String"){
 $config_file_name = [System.IO.Path]::GetFileNameWithoutExtension($model_file_name) + ".json"
 
 $model_config_path =$MAIN_CFG.model_config_path + $config_file_name
-$MODEL_CFG = Get-Content -Path $model_config_path | ConvertFrom-Json
+try {
+  $MODEL_CFG = Get-Content -Path $model_config_path | ConvertFrom-Json
+}catch {
+  Throw "Error loading model config"
+}
 
 $settings_path = $MAIN_CFG.settings_path + "*.json"
-$settings_files = Get-ChildItem $settings_path | ForEach-Object {
-  if ( -not $_.psiscontainer) {
-      $temp = $_.fullname -replace [regex]::escape($MAIN_CFG.settings_path), (split-path $MAIN_CFG.settings_path -leaf)
-      "$temp"
+try {
+  $settings_files = Get-ChildItem $settings_path | ForEach-Object {
+    if ( -not $_.psiscontainer) {
+        $temp = $_.fullname -replace [regex]::escape($MAIN_CFG.settings_path), (split-path $MAIN_CFG.settings_path -leaf)
+        "$temp"
+    }
   }
+}
+catch {
+  Throw "Error loading settings files"
 }
 
 $settings_choices = [System.Collections.ArrayList]@()
@@ -85,28 +104,37 @@ Write-Host 'Model: ' $model_file_name
 $setting_choice = $Host.UI.PromptForChoice("Please select run settings", "What setting do you want to use?", $settings_choice_list, 0)
 
 #If only one settings file in list then this returns a string
-if ($settings_files.GetType().FullName -eq "System.String"){
-  $SETTINGS_CFG = Get-Content -Path $settings_files | ConvertFrom-Json
-  $settings_file_name = Split-Path $settings_files -Leaf
-} else {
-  $SETTINGS_CFG = Get-Content -Path $settings_files[$setting_choice]| ConvertFrom-Json
-  $settings_file_name = Split-Path $settings_files[$setting_choice] -Leaf
+try {
+  if ($settings_files.GetType().FullName -eq "System.String"){
+    $SETTINGS_CFG = Get-Content -Path $settings_files | ConvertFrom-Json
+    $settings_file_name = Split-Path $settings_files -Leaf
+  } else {
+    $SETTINGS_CFG = Get-Content -Path $settings_files[$setting_choice]| ConvertFrom-Json
+    $settings_file_name = Split-Path $settings_files[$setting_choice] -Leaf
+  }
+}
+catch {
+  Throw "Error loading settings"
 }
 
 #Get prompts
 $prompt_path = $MAIN_CFG.prompt_path + "*"
-$prompts = Get-ChildItem $prompt_path -Include *.txt | ForEach-Object {
+try {
+  $prompts = Get-ChildItem $prompt_path -Include *.txt | ForEach-Object {
     if ( -not $_.psiscontainer) {
         $temp = $_.fullname -replace [regex]::escape($prompt_path), (split-path $prompt_path -leaf)
         "$temp"
     }
+  }
+  $prompts_json = Get-ChildItem $prompt_path -Include *.json | ForEach-Object {
+    if ( -not $_.psiscontainer) {
+        $temp = $_.fullname -replace [regex]::escape($prompt_path), (split-path $prompt_path -leaf)
+        "$temp"
+    }
+  }
 }
-
-$prompts_json = Get-ChildItem $prompt_path -Include *.json | ForEach-Object {
-    if ( -not $_.psiscontainer) {
-        $temp = $_.fullname -replace [regex]::escape($prompt_path), (split-path $prompt_path -leaf)
-        "$temp"
-    }
+catch {
+  Throw "Error loading prompt list"
 }
 
 #If there is just one prompt file of a given type the return element type is string
@@ -172,10 +200,9 @@ $REPEAT_PENALTY = $SETTINGS_CFG.repeat_penalty
 $REPEAT_LAST = $SETTINGS_CFG.repeat_last
 $BATCH_SIZE = $SETTINGS_CFG.batch_size
 $ROPE_SCALE = $SETTINGS_CFG.rope_scale
-$MIROSTAT = $SETTINGS_CFG.mirostat
 $REVERSE_PROMPT = $MAIN_CFG.name + ":"
 
-$cache_file =$MAIN_CFG.cache_path + [System.IO.Path]::GetFileNameWithoutExtension($model_file_name) + "_" +[System.IO.Path]::GetFileNameWithoutExtension($prompt_name) + ".bin"
+$cache_file =$MAIN_CFG.cache_path + [System.IO.Path]::GetFileNameWithoutExtension($model_file_name) + "_" +[System.IO.Path]::GetFileNameWithoutExtension($prompt_name) + ".gguf"
 
 Write-Host "Running"
 Write-Host 'Model: ' $model_file_name
@@ -185,7 +212,14 @@ Write-Host 'Prompt: ' $prompt_name
 $prompt_template = Get-Content -Path $PARAM_PROMPT
 $extension = [System.IO.Path]::GetExtension($prompt_name)
 if($extension -eq ".json") {
-  $json_content = ConvertFrom-Json $prompt_template -AsHashtable
+  try {
+    ##TODO this sometimes fails even if the content is valid JSON. Figure out why
+    $json_content = ConvertFrom-Json $prompt_template -AsHashtable
+  }
+  catch {
+    throw 'Error loading Json'
+  }
+  
   if($json_content.ContainsKey("name")) {
       $name  = $json_content["name"]
   } else {
@@ -217,14 +251,16 @@ if($extension -eq ".json") {
     $pre_prompt = $MAIN_CFG.prompt_core
   }
 
-  $processed_template =  $pre_prompt+ "`r`n" +$description + "`r`n" + $example_dialogue + "`r`n" + $scenario + "`r`n" + $char_greeting + "`r`n" + $REVERSE_PROMPT
+  $processed_template =  $pre_prompt+ "`r`n" +$description + "`r`n" + $example_dialogue + "`r`n" + $scenario + "`r`n" + $char_greeting + "`r`n"
 } else {
   $processed_template =  $prompt_template
 }
 $processed_template =  $processed_template.Replace("{{user}}", $MAIN_CFG.name).Replace("{{char}}", $name)
 $temp_prompt_path =$MAIN_CFG.cache_path + [System.IO.Path]::GetFileNameWithoutExtension($prompt_name) + ".txt"
 Out-File -FilePath $temp_prompt_path -InputObject $processed_template
-
+##TODO construct this dynamically from the settings params
+##Add extra params
+##Enable bin and gguf
 $params = [System.Collections.ArrayList]@(
     '-t'
     $THREADS
@@ -248,14 +284,13 @@ $params = [System.Collections.ArrayList]@(
     $REPEAT_LAST
     '--batch_size'
     $BATCH_SIZE
-    '--mirostat'
-    $MIROSTAT
     "--rope_scale"
     $ROPE_SCALE
-    '--interactive'
+    '--interactive-first'
+    '--in-prefix'
+    $REVERSE_PROMPT
     "--reverse-prompt"
     $REVERSE_PROMPT
-    "--ignore-eos"
     "--prompt-cache"
     $cache_file
 )

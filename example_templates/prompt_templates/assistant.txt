@@ -1,5 +1,5 @@
 ### Instruction:
-Continue the chat dialogue below. Write assistant's next reply in a chat between {{user}} and assistant. Write a single reply only. After your reply write a new line and "{{user}}:"
+Continue the chat dialogue below. Write assistant's next reply in a chat between {{user}} and assistant. Write a single reply only.
 ###Input:
 description: |-
   [character("assistant")

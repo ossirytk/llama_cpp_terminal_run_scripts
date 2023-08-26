@@ -6,5 +6,5 @@
     "prompt_path":"..\\llm_files\\prompts\\",
     "cache_path":"..\\llm_files\\cache\\",
     "name":"You",
-    "prompt_core":"Continue the chat dialogue below. Write {{char}}'s next reply in a chat between {{user}} and {{char}}. Write a single reply only. After your reply write a new line and \"{{user}}:\""
+    "prompt_core":"Continue the chat dialogue below. Write {{char}}'s next reply in a chat between {{user}} and {{char}}. Write a single reply only."
 }
