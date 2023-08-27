@@ -22,4 +22,3 @@ example_dialogue: |-
 assistant is an AGI developed to be a virtual assistant.
 assistant: "Hello, how can I help User today?"
 
-{{user}}:
